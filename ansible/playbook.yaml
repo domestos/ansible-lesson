@@ -1,0 +1,54 @@
+---
+- hosts: bootstart
+
+  tasks:
+
+  - name: update system
+    become: yes
+    apt:
+      update_cache: yes
+      upgrade: dist
+
+  - name: install packages
+    become: yes
+    apt:
+      name: '{{ item }}'
+      update_cache: yes
+    with_items:
+      - ntp
+      - samba
+      - winbind
+      - libnss-winbind
+      - libpam-winbind
+      - krb5-user
+      - libpam-krb5
+      - krb5-config
+      - krb5-locales
+
+  - name: Upload ntp server configuration
+    become: yes
+    template:
+      src: templates/ntp.conf.j2
+      dest: /etc/ntp.conf
+      backup: yes
+      mode: 0744
+
+  - name: Update /etc/hosts
+    become: yes
+    lineinfile:
+      path: /etc/hosts
+      line: '127.0.1.1 {{ domain_name }}.{{ domain }} {{ domain_name }}'
+      regexp: '127.0.1.1 *'
+
+  - name: Set hostname
+    become: yes
+    hostname:
+      name: '{{ domain_name }}'
+
+  - name: register
+    command: >
+      testparm
+    register: tstparam
+
+  - debug:
+      var: tstparam 
